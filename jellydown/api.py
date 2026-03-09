@@ -80,3 +80,20 @@ def list_library_items(base, api_key, user_id, item_type):
         if start_index >= total or not items:
             break
     return all_items
+
+
+"""Process download or streaming for selected item."""
+def get_media_id(cfg, api_key, base, item: dict) -> tuple[str, str]:
+    item_id = item["Id"]
+    ms = item.get("MediaSources") or []
+    media_source_id = None
+    if ms and isinstance(ms, list) and isinstance(ms[0], dict):
+        media_source_id = ms[0].get("Id")
+
+    if not media_source_id:
+        full = jget(base, f"/Items/{item_id}", api_key)
+        ms2 = full.get("MediaSources") or []
+        if ms2 and isinstance(ms2, list) and isinstance(ms2[0], dict):
+            media_source_id = ms2[0].get("Id")
+
+    return item_id, media_source_id
