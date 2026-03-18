@@ -275,7 +275,7 @@ def get_subtitles(base, api_key, user_id, item_id, movie_or_episode_filename, ou
         res = session.get(download_url, params=params)
 
         if res.status_code == 200:
-            clean_name = f"{movie_or_episode_filename}.{sub['ext']}"
+            clean_name = f"{movie_or_episode_filename}.{sub['lang']}.{sub['ext']}"
             with open(os.path.join(output_dir, clean_name), "wb") as f:
                 f.write(res.content)
             print(f"Saved: {clean_name}")
