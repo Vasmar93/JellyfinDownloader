@@ -50,10 +50,6 @@ def determine_user_id(cfg, base, api_key):
             me = jget(base, "/Users/Me", api_key)
             user_id = me.get("Id")
             return me, user_id
-        else:
-            print("\nAuthentication failed: Invalid or expired API key/token.")
-            print("Please delete jellydown.json and try again to re-authenticate.")
-            sys.exit(1)
         raise
 
     return me, user_id
