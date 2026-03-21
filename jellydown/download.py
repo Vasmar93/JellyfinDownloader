@@ -6,6 +6,39 @@ from pathlib import Path
 
 TIMEOUT = 30
 
+
+def get_audio_index(base: str, api_key: str, item_id: str):
+    url = f"{base.rstrip('/')}/Items/{item_id}?api_key={api_key}"
+    resp = requests.get(url).json()
+
+    # MediaStreams contains video, audio, and subtitles
+    audio_tracks = [
+        {"index": s["Index"], "language": s.get("Language", "und"), "codec": s.get("Codec")}
+        for s in resp.get("MediaSources", [{}])[0].get("MediaStreams", [])
+        if s["Type"] == "Audio"
+    ]
+
+    if not audio_tracks:
+        print("No audio tracks found.")
+        return None
+
+    print("\n--- Available Audio Tracks ---")
+    for i, track in enumerate(audio_tracks):
+        print(f"[{i}] Language: {track['language']}")
+
+    while True:
+        try:
+            choice = int(input(f"\nSelect track number (0-{len(audio_tracks) - 1}): "))
+            if 0 <= choice < len(audio_tracks):
+                selected_index = audio_tracks[choice]["index"]
+                print(f"Selected Audio Stream Index: {selected_index}")
+                return selected_index
+            else:
+                print(f"Please enter a number between 0 and {len(audio_tracks) - 1}.")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+
+
 def download_stream(stream_url: str, output_path: Path, estimated_size: int = 0):
     """Download stream directly using requests."""
     response = requests.get(stream_url, stream=True, timeout=TIMEOUT)

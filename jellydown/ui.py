@@ -259,7 +259,6 @@ def get_subtitles(base, api_key, user_id, item_id, movie_or_episode_filename, ou
 
     choice = input("\nPick a number or type 'all': ").strip().lower()
 
-    to_download = []
     if choice == 'all':
         to_download = subtitle_options
     elif choice.isdigit() and 1 <= int(choice) <= len(subtitle_options):
@@ -285,10 +284,12 @@ def get_subtitles(base, api_key, user_id, item_id, movie_or_episode_filename, ou
 
 def process_download_or_stream(base, api_key, items, selected_index, cfg, user_id):
     from .api import get_media_id, build_stream_url
+    from .download import get_audio_index
 
     target_item = items[selected_index]
     item_id, media_source_id = get_media_id(cfg, api_key, base, target_item)
-    stream_url = build_stream_url(base, api_key, item_id, cfg, media_source_id=media_source_id)
+    audio_index = get_audio_index(base, api_key, item_id)
+    stream_url = build_stream_url(base, api_key, item_id, cfg, media_source_id=media_source_id, audio_index=audio_index)
 
     print("\nStream URL:")
     print(stream_url)

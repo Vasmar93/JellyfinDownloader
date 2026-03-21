@@ -34,7 +34,7 @@ def authenticate(base, username, password):
         print(f"Authentication failed: {e}")
         return None
 
-def build_stream_url(base, api_key, item_id, cfg, media_source_id=None):
+def build_stream_url(base, api_key, item_id, cfg, media_source_id=None, audio_index=None):
     """Build stream URL with transcoding parameters."""
     params = {
         "api_key": api_key,
@@ -51,6 +51,8 @@ def build_stream_url(base, api_key, item_id, cfg, media_source_id=None):
     }
     if media_source_id:
         params["MediaSourceId"] = media_source_id
+    if audio_index is not None:
+        params["AudioStreamIndex"] = audio_index
 
     return f"{base.rstrip('/')}/Videos/{item_id}/stream.mp4?{urlencode(params)}"
 
