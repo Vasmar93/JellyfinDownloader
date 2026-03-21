@@ -288,8 +288,7 @@ def process_download_or_stream(base, api_key, items, selected_index, cfg, user_i
 
     target_item = items[selected_index]
     item_id, media_source_id = get_media_id(cfg, api_key, base, target_item)
-    audio_index = get_audio_index(base, api_key, item_id)
-    stream_url = build_stream_url(base, api_key, item_id, cfg, media_source_id=media_source_id, audio_index=audio_index)
+    stream_url = build_stream_url(base, api_key, item_id, cfg, media_source_id=media_source_id)
 
     print("\nStream URL:")
     print(stream_url)
@@ -329,9 +328,6 @@ def process_download_or_stream(base, api_key, items, selected_index, cfg, user_i
             sub_option = input("\nDownload subtitles? (y/N): ").strip().lower()
             if sub_option == "y":
                 get_subtitles(base, api_key, user_id, item_id, filename, out_dir)
-
-            item_id, media_source_id = get_media_id(cfg, api_key, base, item)
-            stream_url = build_stream_url(base, api_key, item_id, cfg, media_source_id=media_source_id)
                 
             output_path = out_dir / filename
 
@@ -344,6 +340,10 @@ def process_download_or_stream(base, api_key, items, selected_index, cfg, user_i
                 # Download original file directly
                 download_direct(base, api_key, item["Id"], output_path)
             else:
+                item_id, media_source_id = get_media_id(cfg, api_key, base, item)
+                audio_index = get_audio_index(base, api_key, item_id)
+                stream_url = build_stream_url(base, api_key, item_id, cfg, media_source_id=media_source_id,
+                                              audio_index=audio_index)
                 # Download transcoded stream
                 # Calculate estimated size
                 duration_ticks = item.get("RunTimeTicks")
