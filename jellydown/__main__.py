@@ -34,7 +34,7 @@ def authentication_flow(base):
     return api_key
 
 
-def determine_user_id(cfg, base, api_key):
+def determine_user_id(base, api_key):
     try:
         me = jget(base, "/Users/Me", api_key)
         user_id = me.get("Id")
@@ -45,14 +45,12 @@ def determine_user_id(cfg, base, api_key):
         if e.response.status_code == 401 and base:
             print("\nAuthentication failed: Invalid or expired API key/token. Trying to get a new one.")
             api_key = authentication_flow(base)
-            cfg["api_key"] = api_key
-            save_config(cfg)
             me = jget(base, "/Users/Me", api_key)
             user_id = me.get("Id")
-            return cfg, me, user_id
+            return me, user_id, api_key
         raise
 
-    return cfg, me, user_id
+    return me, user_id, api_key
 
 
 def main():
@@ -76,11 +74,12 @@ def main():
     api_key = (cfg.get("api_key") or "").strip()
     if not api_key:
         api_key = authentication_flow(base)
-        cfg["server_url"] = base
-        cfg["api_key"] = api_key
-        save_config(cfg)
 
-    cfg, me, user_id = determine_user_id(cfg, base, api_key)
+    me, user_id, api_key = determine_user_id(base, api_key)
+
+    cfg["server_url"] = base
+    cfg["api_key"] = api_key
+    save_config(cfg)
 
     print(f"\nConnected as: {me.get('Name','(unknown)')}  UserId: {user_id}")
 
