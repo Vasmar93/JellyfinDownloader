@@ -52,7 +52,7 @@ def determine_user_id(cfg, base, api_key):
             return me, user_id
         raise
 
-    return me, user_id
+    return cfg, me, user_id
 
 
 def main():
@@ -74,13 +74,13 @@ def main():
             base = f"{parsed.scheme}://{parsed.hostname}:8096{parsed.path}"
 
     api_key = (cfg.get("api_key") or "").strip()
-    if not api_key or not base:
+    if not api_key:
         api_key = authentication_flow(base)
         cfg["server_url"] = base
         cfg["api_key"] = api_key
         save_config(cfg)
 
-    me, user_id = determine_user_id(cfg, base, api_key)
+    cfg, me, user_id = determine_user_id(cfg, base, api_key)
 
     print(f"\nConnected as: {me.get('Name','(unknown)')}  UserId: {user_id}")
 
