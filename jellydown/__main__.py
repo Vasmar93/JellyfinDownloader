@@ -49,7 +49,7 @@ def determine_user_id(cfg, base, api_key):
             save_config(cfg)
             me = jget(base, "/Users/Me", api_key)
             user_id = me.get("Id")
-            return me, user_id
+            return cfg, me, user_id
         raise
 
     return cfg, me, user_id
