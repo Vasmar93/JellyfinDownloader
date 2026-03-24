@@ -205,7 +205,7 @@ def get_subtitles(base, api_key, user_id, item_id, movie_or_episode_filename, ou
         os.makedirs(output_dir)
 
     # We remove the video extension from the filename
-    movie_or_episode_filename = movie_or_episode_filename.split('.')[0]
+    movie_or_episode_filename = os.path.splitext(movie_or_episode_filename)[0]
 
     session = requests.Session()
     # Jellyfin often requires the token in the header AND sometimes as a query param
