@@ -342,8 +342,8 @@ def process_download_or_stream(base, api_key, items, selected_index, cfg, user_i
             else:
                 item_id, media_source_id = get_media_id(cfg, api_key, base, item)
                 audio_index = get_audio_index(base, api_key, item_id)
-                stream_url = build_stream_url(base, api_key, item_id, cfg, media_source_id=media_source_id,
-                                              audio_index=audio_index)
+                stream_url = build_stream_url(base, api_key, item_id, cfg, media_source_id=media_source_id, audio_index=audio_index)
+
                 # Download transcoded stream
                 # Calculate estimated size
                 duration_ticks = item.get("RunTimeTicks")
