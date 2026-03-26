@@ -292,77 +292,89 @@ def process_download_or_stream(base, api_key, items, selected_index, cfg, user_i
 
     print("\nStream URL:")
     print(stream_url)
-    
-    dl = input("\nDownload? (y/N): ").strip().lower()
-    if dl == "y":
-        count = 1
-        # Only ask for count if it's a series episode (not a movie)
-        if target_item.get("Type") != "Movie" and len(items) > 1 and selected_index < len(items) - 1:
-             print("\nYou can download multiple items in sequence. If you want your choice and the next 2 episodes, enter 3.")
-             count = prompt_int("How many items to download (including this one)? [default 1]: ", default=1)
-        
-        # Get download path from config or prompt
-        default_path = cfg.get("download_path", "")
-        if default_path:
-            out_dir_raw = input(f"Output directory [blank = {default_path}]: ").strip()
-        else:
-            out_dir_raw = input("Output directory (blank = current folder): ").strip()
-        
-        if out_dir_raw:
-            out_dir = Path(out_dir_raw)
-            cfg["download_path"] = out_dir_raw
-            save_config(cfg)
-        elif default_path:
-            out_dir = Path(default_path)
-        else:
-            out_dir = Path(".")
 
-        for i in range(selected_index, min(len(items), selected_index + count)):
-            item = items[i]
-            # For movies, episode_filename might produce weird results if fields missing, but defaults should handle it
-            if item.get("Type") == "Movie":
-                filename = sanitize_filename(item.get("Name") or "Movie") + ".mp4"
+    confirm_download = ""
+    while confirm_download.lower() != "y" and confirm_download.lower() != "n":
+        confirm_download = input("\nDownload? (y/N): ").strip().lower()
+        if confirm_download == "y":
+            count = 1
+            # Only ask for count if it's a series episode (not a movie)
+            if target_item.get("Type") != "Movie" and len(items) > 1 and selected_index < len(items) - 1:
+                 print("\nYou can download multiple items in sequence. If you want your choice and the next 2 episodes, enter 3.")
+                 count = prompt_int("How many items to download (including this one)? [default 1]: ", default=1)
+
+            # Get download path from config or prompt
+            default_path = cfg.get("download_path", "")
+            if default_path:
+                out_dir_raw = input(f"Output directory [blank = {default_path}]: ").strip()
             else:
-                filename = episode_filename(item, ".mp4")
+                out_dir_raw = input("Output directory (blank = current folder): ").strip()
 
-            sub_option = input("\nDownload subtitles? (y/N): ").strip().lower()
-            if sub_option == "y":
-                get_subtitles(base, api_key, user_id, item_id, filename, out_dir)
-                
-            output_path = out_dir / filename
-
-            print(f"\nDownloading {filename}")
-            print(f"-> {output_path}")
-            
-            # Check if transcode is needed
-            bitrate = cfg.get("VideoBitrate", 4_000_000)
-            if should_skip_transcode(item, bitrate):
-                # Download original file directly
-                download_direct(base, api_key, item["Id"], output_path)
+            if out_dir_raw:
+                out_dir = Path(out_dir_raw)
+                cfg["download_path"] = out_dir_raw
+                save_config(cfg)
+            elif default_path:
+                out_dir = Path(default_path)
             else:
-                item_id, media_source_id = get_media_id(cfg, api_key, base, item)
-                audio_index = get_audio_index(base, api_key, item_id)
-                stream_url = build_stream_url(base, api_key, item_id, cfg, media_source_id=media_source_id, audio_index=audio_index)
+                out_dir = Path(".")
 
-                # Download transcoded stream
-                # Calculate estimated size
-                duration_ticks = item.get("RunTimeTicks")
-                estimated_size = 0
-                if duration_ticks and bitrate > 0:
-                    duration_seconds = duration_ticks / 10_000_000
-                    # Total bitrate includes video + audio
-                    audio_bitrate = cfg.get("AudioBitrate", 128_000)
-                    total_bitrate = bitrate + audio_bitrate
-                    # If MaxStreamingBitrate is less, use that
-                    max_streaming_bitrate = cfg.get("MaxStreamingBitrate")
-                    print(f"Configured with VideoBitrate={bitrate}, AudioBitrate={audio_bitrate}, MaxStreamingBitrate={max_streaming_bitrate}")
-                    if max_streaming_bitrate and max_streaming_bitrate < total_bitrate:
-                        total_bitrate = max_streaming_bitrate
-                    estimated_size = (total_bitrate * duration_seconds) / 8  # bits to bytes
-                    print(f"Estimated size: ~{estimated_size / 1e6:.1f} MB (based on {total_bitrate / 1e6:.2f} Mbps and {duration_seconds:.0f} seconds)")
-                
-                download_stream(stream_url, output_path, estimated_size)
+            for i in range(selected_index, min(len(items), selected_index + count)):
+                item = items[i]
+                # For movies, episode_filename might produce weird results if fields missing, but defaults should handle it
+                if item.get("Type") == "Movie":
+                    filename = sanitize_filename(item.get("Name") or "Movie") + ".mp4"
+                else:
+                    filename = episode_filename(item, ".mp4")
 
-        print("\nDone.")
+                sub_option = ""
+                while sub_option.lower() != "y" and sub_option.lower() != "n":
+                    sub_option = input("\nDownload subtitles? (y/N): ").strip().lower()
+                    if sub_option.lower() == "y":
+                        get_subtitles(base, api_key, user_id, item_id, filename, out_dir)
+                    elif sub_option.lower() == "n":
+                        print("\nSkipping subtitles...")
+                    else:
+                        print("\nPick a valid option.")
+
+                output_path = out_dir / filename
+
+                print(f"\nDownloading {filename}")
+                print(f"-> {output_path}")
+
+                # Check if transcode is needed
+                bitrate = cfg.get("VideoBitrate", 4_000_000)
+                if should_skip_transcode(item, bitrate):
+                    # Download original file directly
+                    download_direct(base, api_key, item["Id"], output_path)
+                else:
+                    item_id, media_source_id = get_media_id(cfg, api_key, base, item)
+                    audio_index = get_audio_index(base, api_key, item_id)
+                    stream_url = build_stream_url(base, api_key, item_id, cfg, media_source_id=media_source_id, audio_index=audio_index)
+
+                    # Download transcoded stream
+                    # Calculate estimated size
+                    duration_ticks = item.get("RunTimeTicks")
+                    estimated_size = 0
+                    if duration_ticks and bitrate > 0:
+                        duration_seconds = duration_ticks / 10_000_000
+                        # Total bitrate includes video + audio
+                        audio_bitrate = cfg.get("AudioBitrate", 128_000)
+                        total_bitrate = bitrate + audio_bitrate
+                        # If MaxStreamingBitrate is less, use that
+                        max_streaming_bitrate = cfg.get("MaxStreamingBitrate")
+                        print(f"Configured with VideoBitrate={bitrate}, AudioBitrate={audio_bitrate}, MaxStreamingBitrate={max_streaming_bitrate}")
+                        if max_streaming_bitrate and max_streaming_bitrate < total_bitrate:
+                            total_bitrate = max_streaming_bitrate
+                        estimated_size = (total_bitrate * duration_seconds) / 8  # bits to bytes
+                        print(f"Estimated size: ~{estimated_size / 1e6:.1f} MB (based on {total_bitrate / 1e6:.2f} Mbps and {duration_seconds:.0f} seconds)")
+
+                    download_stream(stream_url, output_path, estimated_size)
+
+            print("\nDone.")
+        elif confirm_download == "n":
+            break
+        else:
+            print("\nPick a valid option.")
     
     input("\nPress Enter to continue...")
