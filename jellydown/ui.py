@@ -221,7 +221,6 @@ def get_subtitles(base, api_key, user_id, item_id, movie_or_episode_filename, ou
         print(f"Failed to reach PlaybackInfo: {e}")
         return
 
-    subtitle_options = []
     media_sources = data.get("MediaSources", [])
 
     # Map Jellyfin Codecs to file extensions
@@ -237,6 +236,7 @@ def get_subtitles(base, api_key, user_id, item_id, movie_or_episode_filename, ou
     }
 
     print(f"\n--- Subtitle List for {movie_or_episode_filename} ---")
+    subtitle_options = []
     for source in media_sources:
         s_id = source.get("Id")
         for stream in source.get("MediaStreams", []):
@@ -327,6 +327,9 @@ def process_download_or_stream(base, api_key, items, selected_index, cfg, user_i
                 else:
                     filename = episode_filename(item, ".mp4")
 
+                if i > 0:
+                    item_id, media_source_id = get_media_id(cfg, api_key, base, item)
+
                 sub_option = ""
                 while sub_option.lower() != "y" and sub_option.lower() != "n":
                     sub_option = input("\nDownload subtitles? (y/N): ").strip().lower()
@@ -348,7 +351,6 @@ def process_download_or_stream(base, api_key, items, selected_index, cfg, user_i
                     # Download original file directly
                     download_direct(base, api_key, item["Id"], output_path)
                 else:
-                    item_id, media_source_id = get_media_id(cfg, api_key, base, item)
                     audio_index = get_audio_index(base, api_key, item_id)
                     stream_url = build_stream_url(base, api_key, item_id, cfg, media_source_id=media_source_id, audio_index=audio_index)
 
@@ -370,7 +372,6 @@ def process_download_or_stream(base, api_key, items, selected_index, cfg, user_i
                         print(f"Estimated size: ~{estimated_size / 1e6:.1f} MB (based on {total_bitrate / 1e6:.2f} Mbps and {duration_seconds:.0f} seconds)")
 
                     download_stream(stream_url, output_path, estimated_size)
-
             print("\nDone.")
         elif confirm_download == "n":
             break
