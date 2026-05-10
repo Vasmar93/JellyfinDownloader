@@ -46,7 +46,7 @@ def get_server_url(config: Config) -> str:
         return config.server_url
 
 
-def get_api_key_or_token(config: Config) -> str:
+def get_api_key_or_token(config: Config, force_token_refresh: bool = False) -> str:
     """
     Attempts to retrieve the API key / token from the config.
     If it's not there, it prompts the user to log in.
@@ -56,7 +56,7 @@ def get_api_key_or_token(config: Config) -> str:
     Returns:
         str: API key or token
     """
-    if not config.api_key:
+    if not config.api_key or force_token_refresh:
         print("\nAuthentication required.")
         print("1. Login with Username/Password (recommended)")
         print("2. Enter API Key manually")
@@ -82,10 +82,13 @@ def get_api_key_or_token(config: Config) -> str:
 
 
 def get_user_id_and_name(server_url: str, api_key_or_token: str) -> tuple[str, str]:
-    user_me_details = jget(server_url, "/Users/Me", api_key_or_token)
-    user_id = user_me_details.get("Id")
-    user_name = user_me_details.get("Name", "(unknown)")
-    return user_id, user_name
+    try:
+        user_me_details = jget(server_url, "/Users/Me", api_key_or_token)
+        user_id = user_me_details.get("Id")
+        user_name = user_me_details.get("Name", "(unknown)")
+        return user_id, user_name
+    except requests.exceptions.HTTPError:
+        raise
 
 
 def determine_user_id_and_name(config: Config) -> tuple[str, str, Config]:
@@ -99,7 +102,7 @@ def determine_user_id_and_name(config: Config) -> tuple[str, str, Config]:
             print(
                 "\nAuthentication failed: Invalid or expired API key/token. Trying to get a new one."
             )
-            config.api_key = get_api_key_or_token(config)
+            config.api_key = get_api_key_or_token(config, force_token_refresh=True)
             user_id, user_name = get_user_id_and_name(config.server_url, config.api_key)
             return user_name, user_id, config
         raise
