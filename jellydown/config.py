@@ -5,7 +5,7 @@ from pathlib import Path
 
 from .classes import Config
 
-CONFIG_FILE = Path(__file__).parent.parent / "jellydown.json"
+CONFIG_FILE = Path(__file__).parent.parent / "config.json"
 
 
 def load_config() -> Config:
@@ -39,5 +39,6 @@ def save_config(config: Config):
         config_dict = config.model_dump()
         json_data = json.dumps(config_dict, indent=4)
         CONFIG_FILE.write_text(json_data, encoding="utf-8")
+        print("Configuration saved successfully.")
     except Exception as e:
         print(f"Failed to save configuration: {e}")

@@ -2,6 +2,7 @@
 
 import getpass
 import sys
+from copy import deepcopy
 from urllib.parse import urlparse
 
 import requests
@@ -13,37 +14,94 @@ from .series import handle_series
 from .ui import handle_movies, settings_menu
 
 
+def validate_jellyfin_server(server_url: str) -> bool:
+    url = f"{server_url.rstrip('/')}/System/Info/Public"
+
+    try:
+        response = requests.get(url, timeout=5)
+
+        response.raise_for_status()
+
+        data = response.json()
+
+        # Verify expected Jellyfin fields
+        required_fields = [
+            "ServerName",
+            "Version",
+            "ProductName",
+        ]
+
+        if not all(field in data for field in required_fields):
+            return False
+
+        if "Jellyfin" not in data.get("ProductName", ""):
+            return False
+
+        return True
+
+    except (
+            requests.RequestException,
+            ValueError,  # invalid JSON
+    ):
+        return False
+
+
 def get_server_url(config: Config) -> str:
     """
-    Attempts to retrieve the server URL from the config.
-    If it's not there, it prompts the user to enter it.
-
-    Args:
-        config (Config): Configuration object
-    Returns:
-        str: Jellyfin server URL
+    Retrieves and validates the Jellyfin server URL.
+    Prompts the user until a reachable server is provided.
     """
-    if not config.server_url:
-        server_url = input(
-            "Jellyfin server URL (e.g. http://192.168.0.1:8096): "
-        ).strip()
-        if not server_url.startswith(("http://", "https://")):
-            server_url = "http://" + server_url
-        # Check if port is specified
-        parsed_url = urlparse(server_url)
-        if not parsed_url.port:
-            add_port = (
-                input("No port specified. Add default port 8096? (Y/n): ")
+
+    server_url = config.server_url
+
+    while True:
+        if not server_url:
+            server_url = input(
+                "Jellyfin server URL " "(e.g. http://192.168.0.1:8096): "
+            ).strip()
+
+            if not server_url.startswith(("http://", "https://")):
+                server_url = "http://" + server_url
+
+            parsed_url = urlparse(server_url)
+
+            # Add default port if missing
+            if not parsed_url.port:
+                add_port = (
+                    input("No port specified. " "Add default port 8096? (Y/n): ")
+                    .strip()
+                    .lower()
+                )
+
+                if add_port != "n":
+                    server_url = (
+                        f"{parsed_url.scheme}://"
+                        f"{parsed_url.hostname}:8096"
+                        f"{parsed_url.path}"
+                    )
+
+        print(f"Checking connection to {server_url}...")
+
+        if validate_jellyfin_server(server_url):
+            print("Successfully verified Jellyfin server IP")
+            return server_url
+
+        print(
+            "Provided server IP is not reachable or does not correspond to a Jellyfin server."
+        )
+
+        action = None
+        while action not in ("r", "c"):
+            action = (
+                input("Would you like to " "[r]etry or [c]hange the URL? (r/c): ")
                 .strip()
                 .lower()
             )
-            if add_port != "n":
-                server_url = (
-                    f"{parsed_url.scheme}://{parsed_url.hostname}:8096{parsed_url.path}"
-                )
-        return server_url
-    else:
-        return config.server_url
+            if action == "c":
+                server_url = None
+                break
+            elif action != "r":
+                print("Invalid choice. Please enter r or c.")
 
 
 def get_api_key_or_token(config: Config, force_token_refresh: bool = False) -> str:
@@ -53,6 +111,7 @@ def get_api_key_or_token(config: Config, force_token_refresh: bool = False) -> s
 
     Args:
         config (Config): Configuration object
+        force_token_refresh (bool, optional): Force token refresh. Defaults to False.
     Returns:
         str: API key or token
     """
@@ -112,11 +171,12 @@ def determine_user_id_and_name(config: Config) -> tuple[str, str, Config]:
 
 def main():
     """Main application entry point."""
-    original_config = config = load_config()
+    original_config = load_config()
+    config = deepcopy(original_config)
     config.server_url = get_server_url(config)
     config.api_key = get_api_key_or_token(config)
-
     user_id, user_name, config = determine_user_id_and_name(config)
+
     if config != original_config:
         save_config(config)
 

@@ -1,8 +1,10 @@
 # JellyfinDownloader
 
-A Python script for downloading movies and TV series from your Jellyfin media server. Downloads streams directly from Jellyfin with server-side transcoding, or download original files without any transcoding.
+A Python script for downloading movies and TV series from your Jellyfin media server. Downloads streams directly from
+Jellyfin with server-side transcoding, or download original files without any transcoding.
 
-Transcoding happens server-side just like normal Jellyfin streaming, allowing you to take advantage of your server's hardware acceleration capabilities. Downloads typically run 10-20x faster than real-time, making it quick and efficient.
+Transcoding happens server-side just like normal Jellyfin streaming, allowing you to take advantage of your server's
+hardware acceleration capabilities. Downloads typically run 10-20x faster than real-time, making it quick and efficient.
 
 ## Features
 
@@ -25,21 +27,25 @@ Transcoding happens server-side just like normal Jellyfin streaming, allowing yo
 #### Windows
 
 **Option 1: Using winget (Recommended)**
+
 ```powershell
 winget install Python.Python.3.12
 ```
 
 **Option 2: Microsoft Store**
+
 1. Open the Microsoft Store app
 2. Search for "Python 3.12" (or latest version)
 3. Click "Get" or "Install"
 
 **Option 3: Official Installer**
+
 1. Download from [python.org](https://www.python.org/downloads/)
 2. Run the installer
 3. **Important**: Check "Add Python to PATH" during installation
 
 **Verify installation:**
+
 ```powershell
 python --version
 ```
@@ -47,22 +53,26 @@ python --version
 #### Linux
 
 **Debian/Ubuntu:**
+
 ```bash
 sudo apt update
 sudo apt install python3 python3-pip
 ```
 
 **Fedora:**
+
 ```bash
 sudo dnf install python3 python3-pip
 ```
 
 **Arch Linux:**
+
 ```bash
 sudo pacman -S python python-pip
 ```
 
 **Verify installation:**
+
 ```bash
 python3 --version
 ```
@@ -74,6 +84,7 @@ pip install requests
 ```
 
 Or if you're using Python 3 specifically:
+
 ```bash
 pip3 install requests
 ```
@@ -94,10 +105,10 @@ pip3 install requests
 2. Enter your Jellyfin server URL (e.g., `http://192.168.1.100:8096`)
 
 3. Choose authentication method:
-   - **Username/Password** (recommended): Generates an access token
-   - **API Key**: Use an existing API key from Jellyfin
+    - **Username/Password** (recommended): Generates an access token
+    - **API Key**: Use an existing API key from Jellyfin
 
-4. The script will save your configuration to `jellydown.json`
+4. The script will save your configuration to `config.json`
 
 ### Main Menu
 
@@ -125,7 +136,7 @@ Configure transcoding options in the Settings menu:
 - **Video Codec**: H.264 (compatible) or H.265 (efficient, requires hardware support)
 - **Audio Codec**: AAC (recommended), MP3, AC3, or OPUS
 - **Video Bitrate**: Set quality (higher = better quality, larger files)
-  - Set to **0** to always download original files without transcoding
+    - Set to **0** to always download original files without transcoding
 - **Audio Bitrate**: Audio quality setting
 - **Max Audio Channels**: Maximum number of audio channels
 
@@ -133,15 +144,16 @@ Configure transcoding options in the Settings menu:
 
 - **Original Files**: Set Video Bitrate to `0` in Settings to always download original files
 - **Batch Downloads**: When downloading series, you can specify how many consecutive episodes to download
-- **Quality Presets**: 
-  - 4 Mbps (default): Good quality for 1080p content
-  - 8-15 Mbps: High quality for 1080p
-  - 20+ Mbps: Very high quality or 4K content
-- **Storage**: The script automatically skips transcoding if your original file is already smaller than the transcoded version would be
+- **Quality Presets**:
+    - 4 Mbps (default): Good quality for 1080p content
+    - 8-15 Mbps: High quality for 1080p
+    - 20+ Mbps: Very high quality or 4K content
+- **Storage**: The script automatically skips transcoding if your original file is already smaller than the transcoded
+  version would be
 
 ## Configuration File
 
-Settings are stored in `jellydown.json`:
+Settings are stored in `config.json`:
 
 ```json
 {
@@ -161,17 +173,20 @@ Settings are stored in `jellydown.json`:
 ## Troubleshooting
 
 ### "Authentication failed"
+
 - Verify your username and password
 - Check that your Jellyfin server is accessible
 - Try using an API key instead (generate one in Jellyfin Dashboard → API Keys)
 
 ### Downloads are slow
+
 - You're downloading from your Jellyfin server - speed depends on your network
 - Transcoding (when enabled) is CPU-intensive on the server side
 - Consider downloading original files (set bitrate to 0) if server performance is an issue
 
 ### Last resort - remove the configuration file
-- Delete `jellydown.json` to reset all settings and reconfigure
+
+- Delete `config.json` to reset all settings and reconfigure
 
 ## License
 

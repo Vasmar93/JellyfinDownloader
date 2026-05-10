@@ -18,7 +18,7 @@ from .utils import sanitize_filename, episode_filename
 
 
 def prompt_int(
-    prompt: str, default: int = 1, min_value: int = 1, max_value: int = 9999
+        prompt: str, default: int = 1, min_value: int = 1, max_value: int = 9999
 ) -> int:
     """Prompt user for an integer with validation."""
     raw = input(prompt).strip()
@@ -32,9 +32,9 @@ def prompt_int(
 
 
 def pick_movie_or_show_from_list(
-    movie_series_list: list[JellyfinMovie] | list[JellyfinSeries],
-    title: str = "Choose",
-    page_size: int = 25,
+        movie_series_list: list[JellyfinMovie] | list[JellyfinSeries],
+        title: str = "Choose",
+        page_size: int = 25,
 ) -> JellyfinMovie | JellyfinSeries | str | None:
     """Interactive paginated picker for selecting from a list of options."""
     if not movie_series_list:
@@ -78,9 +78,9 @@ def pick_movie_or_show_from_list(
 
 
 def pick_season_from_list(
-    seasons: list[JellyfinSeason],
-    title: str = "Seasons",
-    page_size: int = 25,
+        seasons: list[JellyfinSeason],
+        title: str = "Seasons",
+        page_size: int = 25,
 ) -> JellyfinSeason | str | None:
     """Interactive paginated picker for seasons. Returns the picked season, 'BACK', or None."""
     if not seasons:
@@ -127,13 +127,20 @@ def pick_season_from_list(
 
 
 def pick_option_from_list(
-    options: list[dict],
-    title: str = "Choose",
-    page_size: int = 25,
+        options: list[dict],
+        title: str = "Choose",
+        page_size: int = 25,
 ) -> str | None:
-    """Picker for ``[{"label": ..., "value": ...}, ...]`` option lists.
-
+    """
+    Picker for ``[{"label": ..., "value": ...}, ...]`` option lists.
     Returns the selected ``value``, the literal ``"BACK"``, or ``None``.
+
+    Args:
+        options (list[dict]): List of options with 'label' and 'value' keys.
+        title (str, optional): Title for the picker. Defaults to "Choose".
+        page_size (int, optional): Number of options to display per page. Defaults to 25.
+    Returns:
+        str | None: Selected value, "BACK", or None.
     """
     if not options:
         return None
@@ -176,9 +183,9 @@ def pick_option_from_list(
 
 
 def pick_episode_from_list(
-    episodes: list[JellyfinEpisode],
-    title: str = "Episodes",
-    page_size: int = 25,
+        episodes: list[JellyfinEpisode],
+        title: str = "Episodes",
+        page_size: int = 25,
 ) -> JellyfinEpisode | str | None:
     """Interactive paginated picker for episodes. Returns the picked episode, 'BACK', or None."""
     if not episodes:
@@ -321,11 +328,11 @@ def handle_movies(config: Config, user_id: str):
 
 
 def get_subtitles(
-    config: Config,
-    user_id: str,
-    item_id: str,
-    movie_or_episode_filename: str,
-    output_dir: Path,
+        config: Config,
+        user_id: str,
+        item_id: str,
+        movie_or_episode_filename: str,
+        output_dir: Path,
 ):
     # Ensure output directory exists
     if not os.path.exists(output_dir):
@@ -416,10 +423,10 @@ def get_subtitles(
 
 
 def process_download_or_stream(
-    config: Config,
-    items: list[JellyfinMovie] | list[JellyfinEpisode],
-    selected_index: int,
-    user_id: str,
+        config: Config,
+        items: list[JellyfinMovie] | list[JellyfinEpisode],
+        selected_index: int,
+        user_id: str,
 ):
     from .api import get_media_id, build_stream_url
     from .download import get_audio_index
@@ -437,9 +444,9 @@ def process_download_or_stream(
         if confirm_download == "y":
             count = 1
             if (
-                target_item.Type != "Movie"
-                and len(items) > 1
-                and selected_index < len(items) - 1
+                    target_item.Type != "Movie"
+                    and len(items) > 1
+                    and selected_index < len(items) - 1
             ):
                 print(
                     "\nYou can download multiple items in sequence. If you want your choice and the next 2 episodes, enter 3."
@@ -515,8 +522,8 @@ def process_download_or_stream(
                             f"Configured with VideoBitrate={config.video_bitrate}, AudioBitrate={config.audio_bitrate}, MaxStreamingBitrate={config.max_streaming_bitrate}"
                         )
                         if (
-                            config.max_streaming_bitrate
-                            and config.max_streaming_bitrate < total_bitrate
+                                config.max_streaming_bitrate
+                                and config.max_streaming_bitrate < total_bitrate
                         ):
                             total_bitrate = config.max_streaming_bitrate
                         estimated_size = (total_bitrate * duration_seconds) / 8
