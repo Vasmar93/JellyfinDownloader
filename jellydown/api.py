@@ -1,9 +1,23 @@
 """Jellyfin API interactions."""
 
-import requests
+from typing import Optional, TypeVar
 from urllib.parse import urlencode
 
+import requests
+
+from .classes import (
+    BaseItem,
+    Config,
+    JellyfinEpisode,
+    JellyfinMovie,
+    JellyfinSeason,
+    JellyfinSeries,
+)
+
+T = TypeVar("T", bound=BaseItem)
+
 TIMEOUT = 30
+
 
 def jget(base, path, api_key, params=None):
     """Make GET request to Jellyfin API."""
@@ -14,17 +28,15 @@ def jget(base, path, api_key, params=None):
     r.raise_for_status()
     return r.json()
 
+
 def authenticate(base, username, password):
     """Authenticate with Jellyfin using username and password."""
     url = base.rstrip("/") + "/Users/AuthenticateByName"
     headers = {
         "Content-Type": "application/json",
-        "X-Emby-Authorization": 'MediaBrowser Client="JellyfinDownloader", Device="JellyfinDownloader", DeviceId="JellyfinDownloader", Version="1.0.0"'
+        "X-Emby-Authorization": 'MediaBrowser Client="JellyfinDownloader", Device="JellyfinDownloader", DeviceId="JellyfinDownloader", Version="1.0.0"',
     }
-    payload = {
-        "Username": username,
-        "Pw": password
-    }
+    payload = {"Username": username, "Pw": password}
     try:
         resp = requests.post(url, json=payload, headers=headers, timeout=TIMEOUT)
         resp.raise_for_status()
@@ -34,18 +46,21 @@ def authenticate(base, username, password):
         print(f"Authentication failed: {e}")
         return None
 
-def build_stream_url(base, api_key, item_id, cfg, media_source_id=None, audio_index=None):
+
+def build_stream_url(
+        config: Config, item_id: str, media_source_id=None, audio_index=None
+):
     """Build stream URL with transcoding parameters."""
     params = {
-        "api_key": api_key,
+        "api_key": config.api_key,
         "container": "mp4",
-        "VideoCodec": cfg.get("VideoCodec", "h264"),
-        "AudioCodec": cfg.get("AudioCodec", "aac"),
-        "VideoBitrate": cfg.get("VideoBitrate", 4_000_000),
-        "MaxStreamingBitrate": cfg.get("MaxStreamingBitrate", 4_000_000),
-        "AudioBitrate": cfg.get("AudioBitrate", 128_000),
-        "MaxAudioChannels": cfg.get("MaxAudioChannels", 2),
-        "SubtitleMethod": cfg.get("SubtitleMethod", "Encode"),
+        "VideoCodec": config.video_codec,
+        "AudioCodec": config.audio_codec,
+        "VideoBitrate": config.video_bitrate,
+        "MaxStreamingBitrate": config.max_streaming_bitrate,
+        "AudioBitrate": config.audio_bitrate,
+        "MaxAudioChannels": config.max_audio_channels,
+        "SubtitleMethod": config.subtitle_method,
         "allowVideoStreamCopy": "true",
         "allowAudioStreamCopy": "true",
     }
@@ -54,48 +69,114 @@ def build_stream_url(base, api_key, item_id, cfg, media_source_id=None, audio_in
     if audio_index is not None:
         params["AudioStreamIndex"] = audio_index
 
-    return f"{base.rstrip('/')}/Videos/{item_id}/stream.mp4?{urlencode(params)}"
+    return f"{config.server_url.rstrip('/')}/Videos/{item_id}/stream.mp4?{urlencode(params)}"
 
-def list_library_items(base, api_key, user_id, item_type):
-    """List all items of a given type from user's library."""
+
+def _paginate_items(
+        config: Config, endpoint: str, params: dict, model: type[T]
+) -> list[T]:
+    """Paginate through a Jellyfin list endpoint and parse each item into ``model``."""
     start_index = 0
     limit = 200
-    all_items = []
+    all_items: list[T] = []
 
     while True:
         data = jget(
-            base, f"/Users/{user_id}/Items", api_key,
-            params={
-                "IncludeItemTypes": item_type,
-                "Recursive": "true",
-                "SortBy": "SortName",
-                "SortOrder": "Ascending",
-                "Fields": "PrimaryImageAspectRatio,MediaSources",
-                "StartIndex": start_index,
-                "Limit": limit,
-            }
+            config.server_url,
+            endpoint,
+            config.api_key,
+            params={**params, "StartIndex": start_index, "Limit": limit},
         )
-        items = data.get("Items", [])
-        all_items.extend(items)
+        raw = data.get("Items", [])
+        all_items.extend(model(**i) for i in raw)
         total = data.get("TotalRecordCount", len(all_items))
-        start_index += len(items)
-        if start_index >= total or not items:
+        start_index += len(raw)
+        if start_index >= total or not raw:
             break
+
     return all_items
 
 
-"""Process download or streaming for selected item."""
-def get_media_id(cfg, api_key, base, item: dict) -> tuple[str, str]:
-    item_id = item["Id"]
-    ms = item.get("MediaSources") or []
-    media_source_id = None
-    if ms and isinstance(ms, list) and isinstance(ms[0], dict):
-        media_source_id = ms[0].get("Id")
+_LIBRARY_PARAMS = {
+    "Recursive": "true",
+    "SortBy": "SortName",
+    "SortOrder": "Ascending",
+    "Fields": "PrimaryImageAspectRatio,MediaSources",
+}
+
+
+def list_movies(config: Config, user_id: str) -> list[JellyfinMovie]:
+    """List all movies in the user's library."""
+    return _paginate_items(
+        config,
+        f"/Users/{user_id}/Items",
+        {**_LIBRARY_PARAMS, "IncludeItemTypes": "Movie"},
+        JellyfinMovie,
+    )
+
+
+def list_series(config: Config, user_id: str) -> list[JellyfinSeries]:
+    """List all series in the user's library."""
+    return _paginate_items(
+        config,
+        f"/Users/{user_id}/Items",
+        {**_LIBRARY_PARAMS, "IncludeItemTypes": "Series"},
+        JellyfinSeries,
+    )
+
+
+def list_seasons(
+        config: Config, user_id: str, series_id: str
+) -> list[JellyfinSeason]:
+    """List all seasons for a given series."""
+    return _paginate_items(
+        config,
+        f"/Shows/{series_id}/Seasons",
+        {"UserId": user_id},
+        JellyfinSeason,
+    )
+
+
+def list_episodes(
+        config: Config,
+        user_id: str,
+        series_id: str,
+        season_id: Optional[str] = None,
+) -> list[JellyfinEpisode]:
+    """List episodes for a series, optionally filtered to a single season."""
+    params: dict = {
+        "UserId": user_id,
+        "Fields": "MediaSources,Overview,RunTimeTicks,SeriesName,ParentIndexNumber,IndexNumber,Name",
+        "SortBy": "IndexNumber",
+        "SortOrder": "Ascending",
+    }
+    if season_id:
+        params["SeasonId"] = season_id
+    return _paginate_items(
+        config,
+        f"/Shows/{series_id}/Episodes",
+        params,
+        JellyfinEpisode,
+    )
+
+
+def get_media_id(
+        config: Config, item: JellyfinMovie | JellyfinEpisode
+) -> tuple[str, Optional[str]]:
+    """Return ``(item_id, media_source_id)`` for a downloadable item.
+
+    Falls back to fetching ``/Items/{id}`` if the item's MediaSources is empty.
+    """
+    item_id = item.Id
+    media_source_id: Optional[str] = None
+
+    if item.MediaSources:
+        media_source_id = item.MediaSources[0].Id
 
     if not media_source_id:
-        full = jget(base, f"/Items/{item_id}", api_key)
-        ms2 = full.get("MediaSources") or []
-        if ms2 and isinstance(ms2, list) and isinstance(ms2[0], dict):
-            media_source_id = ms2[0].get("Id")
+        full = jget(config.server_url, f"/Items/{item_id}", config.api_key)
+        ms = full.get("MediaSources") or []
+        if ms and isinstance(ms[0], dict):
+            media_source_id = ms[0].get("Id")
 
     return item_id, media_source_id
