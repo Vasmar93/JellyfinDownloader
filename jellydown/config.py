@@ -9,7 +9,14 @@ CONFIG_FILE = Path(__file__).parent.parent / "jellydown.json"
 
 
 def load_config() -> Config:
-    """Load configuration from file, falling back to Pydantic defaults."""
+    """
+    Load configuration from file, falling back to Pydantic defaults
+
+    Args:
+        None
+    Returns:
+        Config: Loaded configuration or default Config object
+    """
     if CONFIG_FILE.exists():
         try:
             data = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
@@ -22,7 +29,12 @@ def load_config() -> Config:
 
 
 def save_config(config: Config):
-    """Saves the current Config object to the JSON file."""
+    """
+    Saves the current Config object to the JSON file.
+
+    Args:
+        config (Config): The configuration object to save
+    """
     try:
         config_dict = config.model_dump()
         json_data = json.dumps(config_dict, indent=4)
